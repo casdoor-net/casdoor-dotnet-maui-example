@@ -1,10 +1,10 @@
 ﻿using IdentityModel.OidcClient;
-using IdentityModel.OidcClient.Browser;
-using IdentityModel.Client;
-using System.Threading;
 
 namespace Casdoor.MauiOidcClient;
 
+/// <summary>
+/// Signs users in with Casdoor over OpenID Connect: authorization code flow with PKCE, without a client secret.
+/// </summary>
 public class CasdoorClient
 {
     private readonly OidcClient client;
@@ -20,10 +20,6 @@ public class CasdoorClient
             Browser = options.Browser,
             PostLogoutRedirectUri = options.RedirectUri
         });
-        client.Options.BackchannelHandler = new HttpClientHandler() 
-        { 
-            ServerCertificateCustomValidationCallback = (message, certificate, chain, sslPolicyErrors) => true 
-        };
     }
 
     public IdentityModel.OidcClient.Browser.IBrowser Browser
@@ -38,29 +34,20 @@ public class CasdoorClient
         }
     }
 
+    /// <summary>
+    /// Opens the Casdoor sign-in page, then exchanges the code for the tokens and verifies the ID token.
+    /// </summary>
     public async Task<LoginResult> LoginAsync()
     {
         return await client.LoginAsync();
     }
 
-    public async Task<LogoutResult> LogoutAsync(string acsessToken)
+    /// <summary>
+    /// Ends the Casdoor session of the user.
+    /// </summary>
+    /// <param name="idToken">The ID token of the sign-in, <see cref="LoginResult.IdentityToken"/>.</param>
+    public async Task<LogoutResult> LogoutAsync(string idToken)
     {
-        var logoutParameters = new Dictionary<string, string>
-        {
-            {"client_id", client.Options.ClientId },
-            {"returnTo", client.Options.RedirectUri }
-        };
-
-        var logoutRequest = new LogoutRequest();
-        logoutRequest.IdTokenHint = acsessToken;
-        //var endSessionUrl = new RequestUrl($"{oidcClient.Options.Authority}/api/logout")
-        //   .Create(new Parameters(logoutParameters));
-        //var browserOptions = new BrowserOptions(endSessionUrl, oidcClient.Options.RedirectUri)
-        //{
-        //    Timeout = TimeSpan.FromMilliseconds(100),
-        //    DisplayMode = logoutRequest.BrowserDisplayMode,       
-        //};              
-
-        return await client.LogoutAsync(logoutRequest);
+        return await client.LogoutAsync(new LogoutRequest { IdTokenHint = idToken });
     }
 }

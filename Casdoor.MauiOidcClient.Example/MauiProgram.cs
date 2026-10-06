@@ -18,10 +18,11 @@ namespace Casdoor.MauiOidcClient.Example
 #if DEBUG
 		    builder.Logging.AddDebug();
 #endif
+            // The Casdoor application to sign in with, the defaults are the public demo server https://door.casdoor.com
             builder.Services.AddSingleton(new CasdoorClient(new()
             {
-                Domain = "exlens.ru",
-                ClientId = "b31be2ee91ee49961506",
+                Domain = "door.casdoor.com",
+                ClientId = "014ae4bd048734ca2dea",
                 Scope = "openid profile email",
 
 #if WINDOWS

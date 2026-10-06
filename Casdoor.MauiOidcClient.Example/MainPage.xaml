@@ -23,9 +23,9 @@
                 IsVisible="false">             
 
                 <Label
-                Text="Welcome to .NET Multi-platform App UI"
+                Text="You have signed in with Casdoor"
                 SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I"
+                SemanticProperties.Description="You have signed in with Casdoor"
                 FontSize="18"
                 HorizontalOptions="Center" />
 

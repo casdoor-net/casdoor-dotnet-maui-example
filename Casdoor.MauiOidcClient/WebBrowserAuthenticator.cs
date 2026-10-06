@@ -3,6 +3,9 @@ using IdentityModel.OidcClient.Browser;
 
 namespace Casdoor.MauiOidcClient;
 
+/// <summary>
+/// Shows the sign-in page in the system browser (Custom Tabs on Android, ASWebAuthenticationSession on iOS and macOS).
+/// </summary>
 public class WebBrowserAuthenticator : IdentityModel.OidcClient.Browser.IBrowser
 {
     public async Task<BrowserResult> InvokeAsync(BrowserOptions options, CancellationToken cancellationToken = default)
@@ -28,6 +31,15 @@ public class WebBrowserAuthenticator : IdentityModel.OidcClient.Browser.IBrowser
             {
                 ResultType = BrowserResultType.UserCancel,
                 ErrorDescription = "Login canceled by the user."
+            };
+        }
+        catch (Exception ex)
+        {
+            return new BrowserResult
+            {
+                ResultType = BrowserResultType.UnknownError,
+                Error = ex.Message,
+                ErrorDescription = ex.Message
             };
         }
     }

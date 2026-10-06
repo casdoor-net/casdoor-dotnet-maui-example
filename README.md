@@ -1,41 +1,46 @@
-# casdoor-dotnet-maui-example
-The repository contain .NET MAUI app and .NET MAUI library for demonstration [Casdoor](https://casdoor.org/) authentication by Open ID Connect.
+# Casdoor .NET MAUI Example
 
-## Demonstration
+[![Build](https://github.com/casdoor-net/casdoor-dotnet-maui-example/actions/workflows/build.yml/badge.svg)](https://github.com/casdoor-net/casdoor-dotnet-maui-example/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/casdoor-net/casdoor-dotnet-maui-example)](https://github.com/casdoor-net/casdoor-dotnet-maui-example/blob/master/LICENSE)
+[![Discord](https://img.shields.io/discord/1022748306096537660?logo=discord&label=discord&color=5865F2)](https://discord.gg/5rPsrAzK7S)
 
-### **Android**
+An example [.NET MAUI](https://dotnet.microsoft.com/apps/maui) app (Android, iOS, macOS, Windows) that signs users in with [Casdoor](https://casdoor.ai/) over OpenID Connect, with the authorization code flow and PKCE.
 
-<img src="images/android.gif" widht=200  height=600/>
+| Project                                                          | Description                                                                 |
+|------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [Casdoor.MauiOidcClient](Casdoor.MauiOidcClient)                 | A small MAUI library: `CasdoorClient` with `LoginAsync()` and `LogoutAsync()` |
+| [Casdoor.MauiOidcClient.Example](Casdoor.MauiOidcClient.Example) | The app using it                                                            |
 
-### **Windows**
+| Android | Windows |
+|---------|---------|
+| <img src="images/android.gif" alt="Android" height="500"/> | <img src="images/windows.gif" alt="Windows" height="300"/> |
 
-<img src="images/windows.gif" widht=600  height=300/>
+## How it works
 
-# Requirements
+1. `CasdoorClient` wraps [IdentityModel.OidcClient](https://github.com/IdentityModel/IdentityModel.OidcClient). It reads the endpoints of Casdoor from `https://<Domain>/.well-known/openid-configuration`.
+2. `LoginAsync()` opens the Casdoor sign-in page with a PKCE code challenge and a random state:
+   - on Android, iOS and macOS in the system browser (`WebBrowserAuthenticator`, based on MAUI's `WebAuthenticator`), Casdoor redirects back to `casdoor://callback`;
+   - on Windows in a `WebView` of the page (`WebViewBrowserAuthenticator`), Casdoor redirects back to `http://localhost/callback`, which the app catches instead of loading.
+3. The library checks the state, exchanges the code for the tokens with the PKCE code verifier (no client secret is stored in the app) and verifies the ID token. `LoginResult.User` holds the claims of the user.
+4. `LogoutAsync(idToken)` ends the Casdoor session through Casdoor's end session endpoint.
 
-- [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet/7.0) installed on your machine
-- The required assets needed for your target(s) platform(s) as described [here](https://docs.microsoft.com/en-us/dotnet/maui/get-started/first-app)
-- Visual Studio 2022 for Windows 17.3  or Visual Studio 2022 for Mac 17.4 (optional)
+## Prerequisites
 
-## Getting started
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) with the MAUI workload: `dotnet workload install maui`
+- The tools of your target platforms, see [.NET MAUI installation](https://learn.microsoft.com/dotnet/maui/get-started/installation)
+- A Casdoor server reachable over HTTPS. The example is preconfigured for the public demo server https://door.casdoor.com, so it runs as is. To use your own, see [Casdoor installation](https://casdoor.ai/docs/basic/server-installation).
 
-### Step 1: Create MAUI Application
+## Configuration
 
-Create your [MAUI Application](https://docs.microsoft.com/en-us/dotnet/maui/get-started/first-app).
+Skip this section to try the example with the public demo server.
 
-### Step 2: Add reference
-
-Add a reference to the `Casdoor.MauiOidcClient` in your project.  
-
-### Step 3: Add Casdoor client
-
-Add `CasdoorClient` as singleton in the services.
+In your Casdoor, create (or reuse) an organization and an application, and add `casdoor://callback` and `http://localhost/callback` to the application's **Redirect URLs**. Then fill in [MauiProgram.cs](Casdoor.MauiOidcClient.Example/MauiProgram.cs):
 
 ```csharp
 builder.Services.AddSingleton(new CasdoorClient(new()
 {
-    Domain = "exlens.ru",
-    ClientId = "660682724e779be2a6f2",
+    Domain = "door.casdoor.com", // host of the Casdoor server
+    ClientId = "014ae4bd048734ca2dea", // client ID of the application
     Scope = "openid profile email",
 
 #if WINDOWS
@@ -46,168 +51,60 @@ builder.Services.AddSingleton(new CasdoorClient(new()
 }));
 ```
 
-### Step 4: Design UI
+## Run
 
-Add code to `MainPage` file.
-
-**MainPage.xaml**
-```xml
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Casdoor.MauiOidcClient.Example.MainPage">
-
-    <ScrollView>
-        <VerticalStackLayout>
-
-            <StackLayout
-                x:Name="LoginView">
-                <Button 
-                    x:Name="LoginBtn"
-                    Text="Log In"
-                    SemanticProperties.Hint="Click to log in"
-                    Clicked="OnLoginClicked"
-                    HorizontalOptions="Center" />
-
-                <WebView x:Name="WebViewInstance" />
-            </StackLayout>
-
-            <StackLayout
-                x:Name="HomeView"
-                IsVisible="false">             
-
-                <Label
-                Text="Welcome to .NET Multi-platform App UI"
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I"
-                FontSize="18"
-                HorizontalOptions="Center" />
-
-                <Button
-                x:Name="CounterBtn"
-                Text="Click me"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Center" />
-
-                <Label 
-                x:Name="NameLabel"
-                Text=""
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="User's name"
-                FontSize="18"
-                HorizontalOptions="Center" />
-
-                <Label 
-                x:Name="EmailLabel"
-                Text=""
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="User's email"
-                FontSize="18"
-                HorizontalOptions="Center" />           
-
-                <Button 
-                x:Name="LogoutBtn"
-                Text="Log Out"
-                SemanticProperties.Hint="Click to log out"
-                Clicked="OnLogoutClicked"
-                HorizontalOptions="Center" />
-
-            </StackLayout>
-        </VerticalStackLayout>
-    </ScrollView>
-
-</ContentPage>
+```shell
+git clone https://github.com/casdoor-net/casdoor-dotnet-maui-example
+cd casdoor-dotnet-maui-example
 ```
 
-**MainPage.cs**
-```csharp
-namespace Casdoor.MauiOidcClient.Example
-{
-    public partial class MainPage : ContentPage
-    {
-        int count = 0;
-        private readonly CasdoorClient client;
-        private string acsessToken;
-        public MainPage(CasdoorClient client)
-        {
-            InitializeComponent();
-            this.client = client;
+Windows:
 
-#if WINDOWS
-    client.Browser = new WebViewBrowserAuthenticator(WebViewInstance);
-#endif
-        }
-
-        private void OnCounterClicked(object sender, EventArgs e)
-        {
-            count++;
-
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
-            else
-                CounterBtn.Text = $"Clicked {count} times";
-
-            SemanticScreenReader.Announce(CounterBtn.Text);
-        }
-
-        private async void OnLoginClicked(object sender, EventArgs e)
-        {
-            var loginResult = await client.LoginAsync();
-            acsessToken = loginResult.AccessToken;
-            if (!loginResult.IsError)
-            {
-                NameLabel.Text = loginResult.User.Identity.Name;
-                EmailLabel.Text = loginResult.User.Claims.FirstOrDefault(c => c.Type == "email")?.Value;            
-
-                LoginView.IsVisible = false;
-                HomeView.IsVisible = true;
-            }
-            else
-            {
-                await DisplayAlert("Error", loginResult.ErrorDescription, "OK");
-            }
-        }
-
-        private async void OnLogoutClicked(object sender, EventArgs e)
-        {
-            var logoutResult = await client.LogoutAsync(acsessToken);
-
-
-            if (!logoutResult.IsError)
-            {
-                HomeView.IsVisible = false;
-                LoginView.IsVisible = true;
-                this.Focus();
-            }
-            else
-            {
-                await DisplayAlert("Error", logoutResult.ErrorDescription, "OK");
-            }
-        }
-    }
-}
+```shell
+dotnet build Casdoor.MauiOidcClient.Example -t:Run -f net10.0-windows10.0.19041.0
 ```
 
+Android (an emulator or a device must be connected):
 
-### Step 5: Support Android platform
-
-Modify `AndroidManifest.xml` file.
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
-	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-	<uses-permission android:name="android.permission.INTERNET" />
-	<queries>
-        <intent>
-            <action android:name="android.support.customtabs.action.CustomTabsService" />
-        </intent>
-    </queries>
-</manifest>
+```shell
+dotnet build Casdoor.MauiOidcClient.Example -t:Run -f net10.0-android
 ```
 
-### Step 6: Launch application
+Or open `casdoor-dotnet-maui-example.sln` in Visual Studio, pick the target and press `Ctrl + F5`.
 
-**Visual Studio:** Press Ctrl + F5 to start
+Click **Log In**. On the demo server, sign in with username `admin` and password `123`.
+
+## Use it in your app
+
+1. Reference the `Casdoor.MauiOidcClient` project and register `CasdoorClient` as above.
+2. Call it from your page, see [MainPage.xaml.cs](Casdoor.MauiOidcClient.Example/MainPage.xaml.cs):
+
+   ```csharp
+   var loginResult = await client.LoginAsync();
+   if (!loginResult.IsError)
+   {
+       var name = loginResult.User.Identity?.Name;
+       var email = loginResult.User.FindFirst("email")?.Value;
+   }
+   ```
+
+3. On Windows, put a `WebView` on the page and use it for signing in: `client.Browser = new WebViewBrowserAuthenticator(WebViewInstance);`
+4. On Android, the callback scheme `casdoor` is registered by `WebAuthenticationCallbackActivity` of the library. Let the app find the browser by adding this to `Platforms/Android/AndroidManifest.xml`:
+
+   ```xml
+   <queries>
+       <intent>
+           <action android:name="android.support.customtabs.action.CustomTabsService" />
+       </intent>
+   </queries>
+   ```
+
+## Resources
+
+- [Casdoor documentation](https://casdoor.ai/docs/overview)
+- [casdoor-dotnet-sdk](https://github.com/casdoor-net/casdoor-dotnet-sdk)
+- [.NET MAUI WebAuthenticator](https://learn.microsoft.com/dotnet/maui/platform-integration/communication/authentication)
+
+## License
+
+[Apache-2.0](LICENSE)

@@ -4,14 +4,16 @@
     {
         int count = 0;
         private readonly CasdoorClient client;
-        private string acsessToken;
+        private string idToken;
+
         public MainPage(CasdoorClient client)
         {
             InitializeComponent();
             this.client = client;
 
 #if WINDOWS
-    client.Browser = new WebViewBrowserAuthenticator(WebViewInstance);
+            // Windows has no system browser flow, show the sign-in page in the WebView of the page
+            client.Browser = new WebViewBrowserAuthenticator(WebViewInstance);
 #endif
         }
 
@@ -30,35 +32,35 @@
         private async void OnLoginClicked(object sender, EventArgs e)
         {
             var loginResult = await client.LoginAsync();
-            acsessToken = loginResult.AccessToken;
-            if (!loginResult.IsError)
+            if (loginResult.IsError)
             {
-                NameLabel.Text = loginResult.User.Identity.Name;
-                EmailLabel.Text = loginResult.User.Claims.FirstOrDefault(c => c.Type == "email")?.Value;            
+                await DisplayAlertAsync("Error", loginResult.ErrorDescription ?? loginResult.Error, "OK");
+                return;
+            }
 
-                LoginView.IsVisible = false;
-                HomeView.IsVisible = true;
-            }
-            else
-            {
-                await DisplayAlert("Error", loginResult.ErrorDescription, "OK");
-            }
+            // the ID token ends the Casdoor session on logout
+            idToken = loginResult.IdentityToken;
+            NameLabel.Text = loginResult.User.Identity?.Name
+                ?? loginResult.User.FindFirst("preferred_username")?.Value
+                ?? loginResult.User.FindFirst("name")?.Value;
+            EmailLabel.Text = loginResult.User.FindFirst("email")?.Value;
+
+            LoginView.IsVisible = false;
+            HomeView.IsVisible = true;
         }
 
         private async void OnLogoutClicked(object sender, EventArgs e)
         {
-            var logoutResult = await client.LogoutAsync(acsessToken);
+            var logoutResult = await client.LogoutAsync(idToken);
+            if (logoutResult.IsError)
+            {
+                await DisplayAlertAsync("Error", logoutResult.ErrorDescription ?? logoutResult.Error, "OK");
+                return;
+            }
 
-            if (!logoutResult.IsError)
-            {
-                HomeView.IsVisible = false;
-                LoginView.IsVisible = true;
-                this.Focus();
-            }
-            else
-            {
-                await DisplayAlert("Error", logoutResult.ErrorDescription, "OK");
-            }
+            idToken = null;
+            HomeView.IsVisible = false;
+            LoginView.IsVisible = true;
         }
     }
 }
